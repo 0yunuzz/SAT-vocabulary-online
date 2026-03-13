@@ -10,7 +10,12 @@ function randomItem<T>(list: T[]): T {
 }
 
 function shuffled<T>(list: T[]): T[] {
-  return [...list].sort(() => Math.random() - 0.5);
+  const copy = [...list];
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+  return copy;
 }
 
 function toComparable(value: string): string {
@@ -24,11 +29,121 @@ function createQuestionId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function stripWordFromSentence(word: string, sentence: string): string {
-  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const regex = new RegExp(`\\b${escaped}\\b`, "i");
-  if (!regex.test(sentence)) return sentence;
-  return sentence.replace(regex, "_____");
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getLeadingLetter(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (!normalized) return "";
+  return normalized[0];
+}
+
+function countDistinctLeadingLetters(words: VocabWord[]): number {
+  const letters = new Set(words.map((entry) => getLeadingLetter(entry.word)).filter(Boolean));
+  return letters.size;
+}
+
+function buildWordForms(word: string): string[] {
+  const parts = word
+    .toLowerCase()
+    .split(/\s*(?:\/|,|;|\bor\b|\|)\s*/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const forms = new Set<string>();
+
+  const addForms = (base: string) => {
+    forms.add(base);
+    if (!/^[a-z]+$/.test(base)) return;
+
+    if (base.endsWith("e")) {
+      forms.add(`${base}d`);
+      forms.add(`${base.slice(0, -1)}ing`);
+    } else {
+      forms.add(`${base}ed`);
+      forms.add(`${base}ing`);
+    }
+
+    if (/[^aeiou]y$/.test(base)) {
+      forms.add(`${base.slice(0, -1)}ies`);
+      forms.add(`${base.slice(0, -1)}ied`);
+    }
+
+    if (/(s|x|z|ch|sh)$/.test(base)) {
+      forms.add(`${base}es`);
+    } else {
+      forms.add(`${base}s`);
+    }
+  };
+
+  parts.forEach(addForms);
+
+  return Array.from(forms).sort((a, b) => b.length - a.length);
+}
+
+function selectSentenceVariant(sentence: string): string {
+  const variants = sentence
+    .split("|")
+    .map((part) => part.replace(/^\s*\d+\.\s*/, "").trim())
+    .filter(Boolean);
+  if (variants.length === 0) return sentence.trim();
+  return randomItem(variants);
+}
+
+function stripWordFromSentence(
+  word: string,
+  sentence: string
+): { prompt: string; replaced: boolean } {
+  const forms = buildWordForms(word);
+  let prompt = sentence;
+  let replacements = 0;
+
+  for (const form of forms) {
+    const regex = new RegExp(`\\b${escapeRegExp(form)}\\b`, "gi");
+    const matches = prompt.match(regex);
+    if (!matches) continue;
+    replacements += matches.length;
+    prompt = prompt.replace(regex, "_____");
+  }
+
+  if (replacements === 0) {
+    const lowerWord = word.trim().toLowerCase();
+    if (/^[a-z]{4,}$/.test(lowerWord)) {
+      const stem = lowerWord.endsWith("e") ? lowerWord.slice(0, -1) : lowerWord;
+      const stemRegex = new RegExp(`\\b${escapeRegExp(stem)}[a-z]*\\b`, "gi");
+      const stemMatches = prompt.match(stemRegex);
+      if (stemMatches) {
+        replacements += stemMatches.length;
+        prompt = prompt.replace(stemRegex, "_____");
+      }
+    }
+  }
+
+  return { prompt, replaced: replacements > 0 };
+}
+
+function buildDefinitionToWordQuestion(
+  sourceWord: VocabWord,
+  words: VocabWord[]
+): QuizQuestion {
+  const distractors = shuffled(
+    words
+      .filter((entry) => toComparable(entry.word) !== toComparable(sourceWord.word))
+      .map((entry) => entry.word)
+  ).slice(0, 3);
+  const correctChoice = sourceWord.word;
+  const choices = shuffled([correctChoice, ...distractors]);
+
+  return {
+    id: createQuestionId(),
+    mode: "definition_to_word",
+    sourceWord,
+    prompt: sourceWord.definition,
+    choices,
+    correctChoice,
+    helperText: "Choose the matching SAT word."
+  };
 }
 
 function resolveCoreMode(
@@ -59,7 +174,29 @@ function chooseCandidateWords(
       const item = progress[entry.word];
       return item ? item.masteryScore < 0.6 || item.isWeak : false;
     });
-    return weakWords.length > 0 ? weakWords : words;
+
+    if (weakWords.length === 0) {
+      return words;
+    }
+
+    const distinctLetters = countDistinctLeadingLetters(weakWords);
+    const shouldBlend = weakWords.length < 14 || distinctLetters < 4;
+    if (!shouldBlend) {
+      return weakWords;
+    }
+
+    const weakWordSet = new Set(weakWords.map((entry) => entry.word));
+    const otherWords = words.filter((entry) => !weakWordSet.has(entry.word));
+    if (otherWords.length === 0) {
+      return weakWords;
+    }
+
+    const extraCount = Math.min(
+      otherWords.length,
+      Math.max(10, weakWords.length)
+    );
+
+    return [...weakWords, ...shuffled(otherWords).slice(0, extraCount)];
   }
 
   if (mode === "missed_words") {
@@ -75,20 +212,57 @@ function chooseCandidateWords(
 
 function weightedWordChoice(
   words: VocabWord[],
-  progress: Record<string, WordProgress>
+  progress: Record<string, WordProgress>,
+  mode: PracticeMode,
+  recentWords: string[]
 ): VocabWord {
-  const withWeight = words.map((word) => {
+  const recentSet = new Set(
+    recentWords.slice(0, 8).map((entry) => toComparable(entry))
+  );
+  const recentLetters = recentWords
+    .slice(0, 8)
+    .map((entry) => getLeadingLetter(entry))
+    .filter(Boolean);
+  const lastLetter = recentLetters[0] ?? "";
+
+  const withWeight = shuffled(words).map((word) => {
     const state = progress[word.word];
+    const isWeak = state ? state.masteryScore < 0.6 || state.isWeak : false;
+    const isMissed = state ? state.missedCount > 0 || state.incorrectAnswers > 0 : false;
+    let weight = 2;
+
     if (!state) {
-      return { word, weight: 2 };
+      weight = mode === "weak_words" || mode === "missed_words" ? 1 : 2.1;
+    } else {
+      const weaknessBoost = (1 - state.masteryScore) * 4;
+      const missedBoost = state.missedCount * 1.5;
+      const retryBoost = state.needsRetry ? 3 : 0;
+      weight = Math.max(1, weaknessBoost + missedBoost + retryBoost + 1);
     }
-    const weaknessBoost = (1 - state.masteryScore) * 4;
-    const missedBoost = state.missedCount * 1.5;
-    const retryBoost = state.needsRetry ? 3 : 0;
-    return {
-      word,
-      weight: Math.max(1, weaknessBoost + missedBoost + retryBoost + 1)
-    };
+
+    if (mode === "weak_words") {
+      weight *= isWeak ? 2.7 : 0.65;
+    } else if (mode === "missed_words") {
+      weight *= isMissed ? 2.7 : 0.65;
+    }
+
+    const normalizedWord = toComparable(word.word);
+    if (recentSet.has(normalizedWord)) {
+      weight *= 0.18;
+    }
+
+    const currentLetter = getLeadingLetter(word.word);
+    if (currentLetter && recentLetters.length > 0) {
+      const letterCount = recentLetters.filter((letter) => letter === currentLetter).length;
+      if (letterCount > 0) {
+        weight *= 1 / (1 + letterCount * 0.55);
+      }
+      if (lastLetter && currentLetter === lastLetter) {
+        weight *= 0.5;
+      }
+    }
+
+    return { word, weight: Math.max(0.08, weight) };
   });
 
   const total = withWeight.reduce((sum, row) => sum + row.weight, 0);
@@ -105,33 +279,24 @@ function weightedWordChoice(
 export function generateQuestion(
   words: VocabWord[],
   mode: PracticeMode,
-  progress: Record<string, WordProgress>
+  progress: Record<string, WordProgress>,
+  recentWords: string[] = []
 ): QuizQuestion {
   const candidates = chooseCandidateWords(mode, words, progress);
-  const sourceWord = weightedWordChoice(candidates, progress);
+  const sourceWord = weightedWordChoice(candidates, progress, mode, recentWords);
   const coreMode = resolveCoreMode(mode, words, progress);
 
   if (coreMode === "definition_to_word") {
-    const distractors = shuffled(
-      words
-        .filter((entry) => toComparable(entry.word) !== toComparable(sourceWord.word))
-        .map((entry) => entry.word)
-    ).slice(0, 3);
-    const correctChoice = sourceWord.word;
-    const choices = shuffled([correctChoice, ...distractors]);
-
-    return {
-      id: createQuestionId(),
-      mode: coreMode,
-      sourceWord,
-      prompt: sourceWord.definition,
-      choices,
-      correctChoice,
-      helperText: "Choose the matching SAT word."
-    };
+    return buildDefinitionToWordQuestion(sourceWord, words);
   }
 
   if (coreMode === "sentence_context") {
+    const sentenceVariant = selectSentenceVariant(sourceWord.exampleSentence);
+    const redactedSentence = stripWordFromSentence(sourceWord.word, sentenceVariant);
+    if (!redactedSentence.replaced) {
+      return buildDefinitionToWordQuestion(sourceWord, words);
+    }
+
     const distractors = shuffled(
       words
         .filter((entry) => toComparable(entry.word) !== toComparable(sourceWord.word))
@@ -144,7 +309,7 @@ export function generateQuestion(
       id: createQuestionId(),
       mode: coreMode,
       sourceWord,
-      prompt: stripWordFromSentence(sourceWord.word, sourceWord.exampleSentence),
+      prompt: redactedSentence.prompt,
       choices,
       correctChoice,
       helperText: "Choose the best word for the sentence."

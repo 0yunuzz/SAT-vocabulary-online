@@ -63,7 +63,12 @@ export default function StudyPage() {
 
   const generateNextQuestion = () => {
     if (words.length === 0) return;
-    const next = generateQuestion(words, practiceMode, snapshot.wordProgress);
+    const next = generateQuestion(
+      words,
+      practiceMode,
+      snapshot.wordProgress,
+      snapshot.recentWords
+    );
     setQuestion(next);
     setSelectedChoice(undefined);
     setFeedback("");
@@ -82,17 +87,27 @@ export default function StudyPage() {
 
   useEffect(() => {
     if (!question && words.length > 0 && !wordsLoading) {
-      const first = generateQuestion(words, practiceMode, snapshot.wordProgress);
+      const first = generateQuestion(
+        words,
+        practiceMode,
+        snapshot.wordProgress,
+        snapshot.recentWords
+      );
       setQuestion(first);
       setQuestionNumber(1);
       setQuestionStartedAt(Date.now());
     }
-  }, [question, practiceMode, snapshot.wordProgress, words, wordsLoading]);
+  }, [question, practiceMode, snapshot.recentWords, snapshot.wordProgress, words, wordsLoading]);
 
   const handlePracticeModeChange = (nextMode: PracticeMode) => {
     setPracticeMode(nextMode);
     if (words.length === 0) return;
-    const nextQuestion = generateQuestion(words, nextMode, snapshot.wordProgress);
+    const nextQuestion = generateQuestion(
+      words,
+      nextMode,
+      snapshot.wordProgress,
+      snapshot.recentWords
+    );
     setQuestion(nextQuestion);
     setQuestionNumber(1);
     setFeedback("");

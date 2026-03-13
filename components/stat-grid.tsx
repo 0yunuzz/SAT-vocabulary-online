@@ -12,7 +12,7 @@ export function StatGrid({ items, footer }: { items: StatItem[]; footer?: ReactN
       <div className="statsGrid">
         {items.map((item) => (
           <article className="statCard" key={item.label}>
-            <span className="eyebrow">{item.label}</span>
+            <p className="statLabel">{item.label}</p>
             <p className="statValue">{item.value}</p>
             {item.hint ? <p className="muted">{item.hint}</p> : null}
           </article>

@@ -19,6 +19,12 @@ export function QuestionCard({
   feedback,
   onSelect
 }: QuestionCardProps) {
+  const feedbackClass = feedback?.toLowerCase().startsWith("correct")
+    ? "statusText correct"
+    : feedback?.toLowerCase().startsWith("incorrect")
+      ? "statusText incorrect"
+      : "statusText";
+
   return (
     <section className="panel quizCard">
       <div className="quizHeader">
@@ -31,7 +37,7 @@ export function QuestionCard({
         <p className="warningText">First answer was incorrect. One retry available.</p>
       ) : null}
       <div className="choiceGrid">
-        {question.choices.map((choice) => {
+        {question.choices.map((choice, index) => {
           const selected = selectedChoice === choice;
           return (
             <button
@@ -40,12 +46,13 @@ export function QuestionCard({
               className={`choiceButton ${selected ? "selected" : ""}`}
               onClick={() => onSelect(choice)}
             >
-              {choice}
+              <span>{index + 1}.</span>
+              <span>{choice}</span>
             </button>
           );
         })}
       </div>
-      {feedback ? <p className="statusText">{feedback}</p> : null}
+      {feedback ? <p className={feedbackClass}>{feedback}</p> : null}
     </section>
   );
 }
