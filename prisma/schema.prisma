@@ -1,0 +1,164 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id            String             @id @default(cuid())
+  name          String?
+  email         String?            @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  progress      UserWordProgress[]
+  studySessions StudySession[]
+  bookmarks     Bookmark[]
+  streak        Streak?
+  achievements  UserAchievement[]
+
+  @@map("Users")
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+
+model Word {
+  id              Int                @id @default(autoincrement())
+  word            String             @unique
+  definition      String
+  exampleSentence String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  progress        UserWordProgress[]
+  bookmarks       Bookmark[]
+
+  @@map("Words")
+}
+
+model UserWordProgress {
+  id                String   @id @default(cuid())
+  userId            String
+  wordId            Int
+  masteryScore      Float    @default(0)
+  attempts          Int      @default(0)
+  correctAnswers    Int      @default(0)
+  incorrectAnswers  Int      @default(0)
+  lastReviewed      DateTime?
+  averageResponseMs Float    @default(0)
+  lastResponseMs    Int?
+  needsRetry        Boolean  @default(false)
+  isWeak            Boolean  @default(false)
+  missedCount       Int      @default(0)
+  lastResult        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word              Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wordId], map: "userId_wordId")
+  @@index([userId, masteryScore])
+  @@map("UserWordProgress")
+}
+
+model StudySession {
+  id             String   @id
+  userId         String
+  mode           String
+  totalQuestions Int
+  correctAnswers Int
+  startedAt      DateTime
+  endedAt        DateTime
+  durationSec    Int
+  accuracy       Float
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+  @@map("Sessions")
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  wordId    Int
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word      Word     @relation(fields: [wordId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, wordId], map: "userId_wordId_bookmark")
+  @@index([userId, createdAt])
+  @@map("Bookmarks")
+}
+
+model Achievement {
+  id          String            @id @default(cuid())
+  key         String            @unique
+  title       String
+  description String
+  points      Int               @default(10)
+  users       UserAchievement[]
+
+  @@map("Achievements")
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId], map: "userId_achievementId")
+  @@index([userId, unlockedAt])
+}
+
+model Streak {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  currentStreak Int      @default(0)
+  longestStreak Int      @default(0)
+  lastStudyDate DateTime?
+  updatedAt    DateTime  @updatedAt
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("Streaks")
+}
