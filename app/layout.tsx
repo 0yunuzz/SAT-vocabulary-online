@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import { Providers } from "@/components/providers";
-import { SiteNav } from "@/components/site-nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,12 +16,10 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Providers>
-          <div className="pageShell">
-            <SiteNav />
-            <main className="content">{children}</main>
-          </div>
+          {children}
         </Providers>
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );

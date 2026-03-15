@@ -17,6 +17,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "latest",
     "@prisma/client": "^6.6.0",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/postgres": "latest",
     "@vercel/speed-insights": "latest",
     "next": "^16.1.6",
