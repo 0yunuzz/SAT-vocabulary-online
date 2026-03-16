@@ -4,41 +4,33 @@ import type { StorageMode, SyncStatus } from "@/lib/types";
 interface SettingsPageProps {
   settings: AppSettings;
   warnings: VocabLoadWarning[];
-  storageMode: StorageMode;
-  syncStatus: SyncStatus;
+  mode: StorageMode;
+  saveStatus: SyncStatus;
   isSignedIn: boolean;
   userEmail?: string | null;
-  mergeAvailable: boolean;
-  onSetStorageMode: (mode: StorageMode) => void;
   onSignIn: () => void;
   onSignOut: () => void;
-  onMergeGuestProgress: () => Promise<{ success: boolean; message: string }>;
-  onRefreshSync: () => void;
   onUpdate: (patch: Partial<AppSettings>) => void;
   onResetProgress: () => Promise<void>;
 }
 
-const syncLabel: Record<SyncStatus, string> = {
-  "guest-local": "Local only",
-  syncing: "Syncing...",
-  synced: "Synced",
-  "offline-pending": "Offline (pending sync)",
-  error: "Sync error"
+const saveLabel: Record<SyncStatus, string> = {
+  "guest-local": "Saved on this device",
+  syncing: "Saving to account...",
+  synced: "Account autosave on",
+  "offline-pending": "Offline, will autosave when back online",
+  error: "Account save issue"
 };
 
 export const SettingsPage = ({
   settings,
   warnings,
-  storageMode,
-  syncStatus,
+  mode,
+  saveStatus,
   isSignedIn,
   userEmail,
-  mergeAvailable,
-  onSetStorageMode,
   onSignIn,
   onSignOut,
-  onMergeGuestProgress,
-  onRefreshSync,
   onUpdate,
   onResetProgress
 }: SettingsPageProps) => {
@@ -47,18 +39,18 @@ export const SettingsPage = ({
       <header className="page-header">
         <div>
           <h2>Settings</h2>
-          <p>Adjust timing, study defaults, storage mode, and account sync controls.</p>
+          <p>Adjust timing, study defaults, and account preferences.</p>
         </div>
       </header>
 
       <div className="settings-grid">
         <article className="panel">
-          <h3>Storage & Account</h3>
+          <h3>Account Mode</h3>
           <p>
-            Current mode: <strong>{storageMode === "guest" ? "Guest" : "Signed-in"}</strong>
+            Current mode: <strong>{mode === "guest" ? "Guest" : "Signed-in"}</strong>
           </p>
           <p>
-            Sync status: <strong>{syncLabel[syncStatus]}</strong>
+            Save behavior: <strong>{saveLabel[saveStatus]}</strong>
           </p>
           {userEmail ? (
             <p>
@@ -67,26 +59,10 @@ export const SettingsPage = ({
           ) : (
             <p className="small-note">No active Google session.</p>
           )}
-
-          <div className="buttonRow">
-            <button
-              type="button"
-              className={`btn ${storageMode === "guest" ? "secondary" : "ghost"}`}
-              onClick={() => onSetStorageMode("guest")}
-            >
-              Use Guest Mode
-            </button>
-            <button
-              type="button"
-              className={`btn ${storageMode === "account" ? "secondary" : "ghost"}`}
-              onClick={() => onSetStorageMode("account")}
-            >
-              Use Signed-In Mode
-            </button>
-            <button type="button" className="btn ghost" onClick={onRefreshSync}>
-              Refresh Sync
-            </button>
-          </div>
+          <p className="small-note">
+            Guest mode keeps progress only on this browser. Signed-in mode automatically saves
+            progress to your account.
+          </p>
 
           <div className="buttonRow">
             {isSignedIn ? (
@@ -98,15 +74,6 @@ export const SettingsPage = ({
                 Sign in with Google
               </button>
             )}
-            {isSignedIn && storageMode === "account" && mergeAvailable ? (
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => void onMergeGuestProgress()}
-              >
-                Merge Guest Progress
-              </button>
-            ) : null}
           </div>
         </article>
 
@@ -199,9 +166,9 @@ export const SettingsPage = ({
         </article>
 
         <article className="panel danger-zone">
-          <h3>Reset Local Progress</h3>
+          <h3>Reset Current Mode Progress</h3>
           <p>
-            This clears all tracked study data for the current mode and sync state.
+            This clears all tracked study data for your current mode.
           </p>
           <button className="btn danger" onClick={() => void onResetProgress()}>
             Reset All Study Data

@@ -1,5 +1,6 @@
 export type AppScreen =
   | "dashboard"
+  | "statistics"
   | "setup"
   | "practice"
   | "results"

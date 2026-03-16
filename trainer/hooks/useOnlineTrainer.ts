@@ -625,11 +625,7 @@ export const useOnlineTrainer = (initialScreen: AppScreen = "dashboard") => {
     wordsById,
     modeState: {
       mode: study.mode,
-      setMode: study.setMode,
       syncStatus: study.syncStatus,
-      mergeAvailable: study.mergeAvailable,
-      mergeGuestIntoAccount: study.mergeGuestIntoAccount,
-      refreshFromServer: study.refreshFromServer,
       isSignedIn: study.isSignedIn,
       user: study.user
     },

@@ -2,9 +2,7 @@ import {
   ACCOUNT_CACHE_KEY,
   GUEST_SNAPSHOT_KEY,
   PENDING_ACCOUNT_SYNC_KEY,
-  STORAGE_MODE_KEY,
-  type ProgressSnapshot,
-  type StorageMode
+  type ProgressSnapshot
 } from "@/lib/types";
 import { createEmptySnapshot, normalizeSnapshot } from "@/lib/snapshot";
 
@@ -15,19 +13,6 @@ function getLocalStorage(): Storage | null {
   } catch {
     return null;
   }
-}
-
-export function getStorageMode(): StorageMode {
-  const localStorage = getLocalStorage();
-  if (!localStorage) return "guest";
-  const stored = localStorage.getItem(STORAGE_MODE_KEY);
-  return stored === "account" ? "account" : "guest";
-}
-
-export function setStorageMode(mode: StorageMode): void {
-  const localStorage = getLocalStorage();
-  if (!localStorage) return;
-  localStorage.setItem(STORAGE_MODE_KEY, mode);
 }
 
 export function getGuestSnapshot(): ProgressSnapshot {

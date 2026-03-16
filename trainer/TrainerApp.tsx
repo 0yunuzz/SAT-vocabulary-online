@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { signIn, signOut } from "next-auth/react";
 import { AppShell } from "./components/AppShell";
 import { DashboardPage } from "./pages/DashboardPage";
+import { StatisticsPage } from "./pages/StatisticsPage";
 import { SetupPage } from "./pages/SetupPage";
 import { PracticePage } from "./pages/PracticePage";
 import { ResultsPage } from "./pages/ResultsPage";
@@ -102,6 +103,10 @@ export const TrainerApp = ({ initialScreen = "dashboard" }: TrainerAppProps) => 
       );
     }
 
+    if (state.screen === "statistics") {
+      return <StatisticsPage words={state.vocabWords} appData={state.appData} />;
+    }
+
     if (state.screen === "setup") {
       return (
         <SetupPage
@@ -158,16 +163,12 @@ export const TrainerApp = ({ initialScreen = "dashboard" }: TrainerAppProps) => 
         <SettingsPage
           settings={state.settings}
           warnings={state.loadWarnings}
-          storageMode={modeState.mode}
-          syncStatus={modeState.syncStatus}
           isSignedIn={modeState.isSignedIn}
           userEmail={modeState.user?.email}
-          mergeAvailable={modeState.mergeAvailable}
-          onSetStorageMode={modeState.setMode}
           onSignIn={() => void signIn("google", { callbackUrl: "/" })}
           onSignOut={() => void signOut({ callbackUrl: "/" })}
-          onMergeGuestProgress={() => modeState.mergeGuestIntoAccount("merge")}
-          onRefreshSync={() => void modeState.refreshFromServer()}
+          mode={modeState.mode}
+          saveStatus={modeState.syncStatus}
           onUpdate={actions.updateSettings}
           onResetProgress={actions.resetProgress}
         />
@@ -183,8 +184,8 @@ export const TrainerApp = ({ initialScreen = "dashboard" }: TrainerAppProps) => 
     <AppShell
       screen={shellScreen}
       onNavigate={actions.navigate}
-      storageMode={modeState.mode}
-      syncStatus={modeState.syncStatus}
+      mode={modeState.mode}
+      saveStatus={modeState.syncStatus}
       userEmail={modeState.user?.email}
     >
       {state.transientNotice ? (
@@ -196,4 +197,3 @@ export const TrainerApp = ({ initialScreen = "dashboard" }: TrainerAppProps) => 
     </AppShell>
   );
 };
-

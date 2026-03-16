@@ -14,6 +14,7 @@ import type {
 import { createAchievementState, createEmptyAppData } from "./constants";
 import { wordStatus } from "./mastery";
 import { average } from "../utils/text";
+import { todayKey } from "../utils/date";
 
 const SYNC_MODES = new Set<SyncPracticeMode>([
   "word_to_definition",
@@ -46,7 +47,7 @@ const updateDailyHistoryFromSession = (
   appData: AppData,
   session: SessionRecord
 ): void => {
-  const dayKey = session.endedAt.slice(0, 10);
+  const dayKey = todayKey(new Date(session.endedAt));
   const entry = appData.dailyHistory[dayKey] ?? {
     date: dayKey,
     questions: 0,

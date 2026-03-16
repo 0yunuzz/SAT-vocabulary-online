@@ -78,7 +78,6 @@ export type SyncStatus =
   | "offline-pending"
   | "error";
 
-export const STORAGE_MODE_KEY = "sat_vocab_storage_mode";
 export const GUEST_SNAPSHOT_KEY = "sat_vocab_guest_snapshot";
 export const ACCOUNT_CACHE_KEY = "sat_vocab_account_cache";
 export const PENDING_ACCOUNT_SYNC_KEY = "sat_vocab_pending_sync";

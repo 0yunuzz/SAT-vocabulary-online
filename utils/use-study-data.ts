@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
-  type MergeStrategy,
   type ProgressSnapshot,
   type SessionRecord,
   type StorageMode,
@@ -22,15 +21,13 @@ import {
   getAccountCacheSnapshot,
   getGuestSnapshot,
   getPendingSyncSnapshot,
-  getStorageMode,
   setAccountCacheSnapshot,
   setGuestSnapshot,
-  setPendingSyncSnapshot,
-  setStorageMode
+  setPendingSyncSnapshot
 } from "@/utils/storage";
 
-function guestMergeMarkerKey(userId: string): string {
-  return `sat_vocab_guest_merged_${userId}`;
+function guestMigrationMarkerKey(userId: string): string {
+  return `sat_vocab_guest_migrated_${userId}`;
 }
 
 type MutableSnapshot = (snapshot: ProgressSnapshot) => ProgressSnapshot;
@@ -38,16 +35,15 @@ type MutableSnapshot = (snapshot: ProgressSnapshot) => ProgressSnapshot;
 export function useStudyData() {
   const { data: session } = useSession();
   const userId = session?.user?.id;
-  const [mode, setModeState] = useState<StorageMode>("guest");
+  const mode: StorageMode = userId ? "account" : "guest";
   const [snapshot, setSnapshot] = useState<ProgressSnapshot>(createEmptySnapshot());
   const [syncStatus, setSyncStatus] = useState<SyncStatus>("guest-local");
   const [ready, setReady] = useState(false);
-  const [mergeAvailable, setMergeAvailable] = useState(false);
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const syncSnapshot = useCallback(
     async (nextSnapshot: ProgressSnapshot): Promise<void> => {
-      if (mode !== "account" || !userId) return;
+      if (!userId) return;
       setAccountCacheSnapshot(nextSnapshot);
 
       if (!navigator.onLine) {
@@ -74,7 +70,7 @@ export function useStudyData() {
         setSyncStatus(navigator.onLine ? "error" : "offline-pending");
       }
     },
-    [mode, userId]
+    [userId]
   );
 
   const debouncedSync = useCallback(
@@ -89,7 +85,7 @@ export function useStudyData() {
 
   const persistSnapshot = useCallback(
     (nextSnapshot: ProgressSnapshot) => {
-      if (mode === "guest") {
+      if (!userId) {
         setGuestSnapshot(nextSnapshot);
         setSyncStatus("guest-local");
         return;
@@ -98,7 +94,7 @@ export function useStudyData() {
       setAccountCacheSnapshot(nextSnapshot);
       debouncedSync(nextSnapshot);
     },
-    [debouncedSync, mode]
+    [debouncedSync, userId]
   );
 
   const commitSnapshot = useCallback(
@@ -118,32 +114,29 @@ export function useStudyData() {
     [persistSnapshot]
   );
 
-  const refreshFromServer = useCallback(async () => {
-    if (mode !== "account" || !userId) return;
+  const refreshFromServer = useCallback(async (): Promise<ProgressSnapshot | null> => {
+    if (!userId) return null;
     if (!navigator.onLine) {
       setSyncStatus("offline-pending");
-      return;
+      return null;
     }
     setSyncStatus("syncing");
     const response = await fetch("/api/progress", { cache: "no-store" });
     if (!response.ok) {
       setSyncStatus("error");
-      return;
+      return null;
     }
     const payload = (await response.json()) as { snapshot: ProgressSnapshot };
     const normalized = normalizeSnapshot(payload.snapshot);
     setSnapshot(normalized);
     setAccountCacheSnapshot(normalized);
     setSyncStatus("synced");
-  }, [mode, userId]);
-
-  useEffect(() => {
-    setModeState(getStorageMode());
-  }, []);
+    return normalized;
+  }, [userId]);
 
   useEffect(() => {
     const onOnline = () => {
-      if (mode !== "account") return;
+      if (!userId) return;
       const pending = getPendingSyncSnapshot();
       if (pending) {
         void syncSnapshot(pending);
@@ -153,7 +146,7 @@ export function useStudyData() {
     };
 
     const onOffline = () => {
-      if (mode === "account") setSyncStatus("offline-pending");
+      if (userId) setSyncStatus("offline-pending");
     };
 
     window.addEventListener("online", onOnline);
@@ -162,46 +155,80 @@ export function useStudyData() {
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, [mode, syncSnapshot]);
+  }, [syncSnapshot, userId]);
 
   useEffect(() => {
-    if (mode === "guest") {
-      setSnapshot(getGuestSnapshot());
-      setSyncStatus("guest-local");
-      setReady(true);
-      return;
-    }
+    let cancelled = false;
 
-    const cached = getAccountCacheSnapshot();
-    setSnapshot(cached);
-    setReady(true);
+    const hydrate = async () => {
+      setReady(false);
 
-    if (!userId) {
-      setSyncStatus("error");
-      return;
-    }
+      if (!userId) {
+        setSnapshot(getGuestSnapshot());
+        setSyncStatus("guest-local");
+        setReady(true);
+        return;
+      }
 
-    void refreshFromServer();
-  }, [mode, refreshFromServer, userId]);
+      const cached = getAccountCacheSnapshot();
+      setSnapshot(cached);
+      setSyncStatus(navigator.onLine ? "syncing" : "offline-pending");
 
-  useEffect(() => {
-    if (!userId) {
-      setMergeAvailable(false);
-      return;
-    }
-    const mergedKey = guestMergeMarkerKey(userId);
-    const alreadyMerged = localStorage.getItem(mergedKey) === "1";
-    const guestSnapshot = getGuestSnapshot();
-    setMergeAvailable(!alreadyMerged && hasMeaningfulData(guestSnapshot));
-  }, [userId, snapshot.updatedAt]);
+      if (!navigator.onLine) {
+        setReady(true);
+        return;
+      }
 
-  const setMode = useCallback(
-    (nextMode: StorageMode) => {
-      setStorageMode(nextMode);
-      setModeState(nextMode);
-    },
-    [setModeState]
-  );
+      try {
+        const guestSnapshot = getGuestSnapshot();
+        const markerKey = guestMigrationMarkerKey(userId);
+        const migrated = localStorage.getItem(markerKey) === "1";
+
+        if (!migrated && hasMeaningfulData(guestSnapshot)) {
+          const accountSnapshot = await refreshFromServer();
+          const accountHasData = hasMeaningfulData(accountSnapshot ?? createEmptySnapshot());
+          const strategy = accountHasData ? "merge" : "replace_account";
+
+          const mergeResponse = await fetch("/api/progress/merge", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              strategy,
+              localSnapshot: guestSnapshot
+            })
+          });
+          if (!mergeResponse.ok) throw new Error("Automatic guest migration failed");
+
+          const mergedPayload = (await mergeResponse.json()) as {
+            snapshot: ProgressSnapshot;
+          };
+          const normalized = normalizeSnapshot(mergedPayload.snapshot);
+          if (!cancelled) {
+            setSnapshot(normalized);
+            setAccountCacheSnapshot(normalized);
+            setSyncStatus("synced");
+          }
+          localStorage.setItem(markerKey, "1");
+          clearGuestSnapshot();
+        } else {
+          await refreshFromServer();
+        }
+      } catch {
+        if (!cancelled) {
+          setSyncStatus(navigator.onLine ? "error" : "offline-pending");
+        }
+      } finally {
+        if (!cancelled) {
+          setReady(true);
+        }
+      }
+    };
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshFromServer, userId]);
 
   const upsertWordProgress = useCallback(
     (wordProgress: WordProgress) => {
@@ -258,80 +285,15 @@ export function useStudyData() {
     [persistSnapshot]
   );
 
-  const mergeGuestIntoAccount = useCallback(
-    async (strategy: MergeStrategy): Promise<{ success: boolean; message: string }> => {
-      if (!userId) {
-        return {
-          success: false,
-          message: "Sign in with Google first."
-        };
-      }
-
-      const guestSnapshot = getGuestSnapshot();
-      if (!hasMeaningfulData(guestSnapshot)) {
-        return {
-          success: true,
-          message: "No guest data was found."
-        };
-      }
-
-      const mergedKey = guestMergeMarkerKey(userId);
-
-      if (strategy === "keep_account") {
-        localStorage.setItem(mergedKey, "1");
-        clearGuestSnapshot();
-        setMergeAvailable(false);
-        return {
-          success: true,
-          message: "Kept account progress."
-        };
-      }
-
-      try {
-        const response = await fetch("/api/progress/merge", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            strategy,
-            localSnapshot: guestSnapshot
-          })
-        });
-        if (!response.ok) throw new Error("Merge failed");
-        const payload = (await response.json()) as { snapshot: ProgressSnapshot };
-        const normalized = normalizeSnapshot(payload.snapshot);
-        setSnapshot(normalized);
-        setAccountCacheSnapshot(normalized);
-        localStorage.setItem(mergedKey, "1");
-        clearGuestSnapshot();
-        setMergeAvailable(false);
-        setSyncStatus("synced");
-        return {
-          success: true,
-          message:
-            strategy === "merge"
-              ? "Guest and account progress merged."
-              : "Account progress replaced with guest progress."
-        };
-      } catch {
-        return {
-          success: false,
-          message: "Merge failed. Try again when online."
-        };
-      }
-    },
-    [userId]
-  );
-
   const mergeLocalAndCurrent = useCallback(() => {
-    const localSnapshot = mode === "guest" ? getGuestSnapshot() : getAccountCacheSnapshot();
+    const localSnapshot = userId ? getAccountCacheSnapshot() : getGuestSnapshot();
     const merged = mergeSnapshots(snapshot, localSnapshot);
     replaceSnapshot(merged);
-  }, [mode, replaceSnapshot, snapshot]);
+  }, [replaceSnapshot, snapshot, userId]);
 
   const state = useMemo(
     () => ({
       mode,
-      setMode,
       snapshot,
       replaceSnapshot,
       upsertWordProgress,
@@ -339,8 +301,6 @@ export function useStudyData() {
       addSession,
       syncStatus,
       ready,
-      mergeAvailable,
-      mergeGuestIntoAccount,
       refreshFromServer,
       mergeLocalAndCurrent,
       isSignedIn: Boolean(userId),
@@ -348,15 +308,12 @@ export function useStudyData() {
     }),
     [
       addSession,
-      mergeAvailable,
-      mergeGuestIntoAccount,
       mergeLocalAndCurrent,
       mode,
       ready,
       refreshFromServer,
       replaceSnapshot,
       session?.user,
-      setMode,
       snapshot,
       syncStatus,
       toggleBookmark,

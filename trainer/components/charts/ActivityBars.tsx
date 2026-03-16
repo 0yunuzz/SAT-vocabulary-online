@@ -11,7 +11,12 @@ export const ActivityBars = ({ points }: ActivityBarsProps) => {
   const max = Math.max(...points.map((p) => p.questions), 1);
 
   return (
-    <div className="activity-bars" role="img" aria-label="Study activity chart">
+    <div
+      className="activity-bars"
+      role="img"
+      aria-label="Study activity chart"
+      style={{ gridTemplateColumns: `repeat(${Math.max(points.length, 1)}, minmax(12px, 1fr))` }}
+    >
       {points.map((point) => {
         const height = Math.max(8, (point.questions / max) * 100);
         const label = point.date.slice(5);
