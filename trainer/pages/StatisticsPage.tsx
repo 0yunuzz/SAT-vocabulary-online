@@ -62,8 +62,8 @@ export const StatisticsPage = ({ words, appData }: StatisticsPageProps) => {
           <div className="stats-grid">
             <StatCard label="Longest streak" value={String(stats.longestStreak)} />
             <StatCard label="Total sessions" value={String(stats.totalSessions)} />
-            <StatCard label="7-day questions" value={String(stats.sevenDayQuestions)} />
-            <StatCard label="Recent session accuracy" value={pct(stats.sevenDayAccuracy)} />
+            <StatCard label="Solved this week" value={String(stats.sevenDayQuestions)} />
+            <StatCard label="Accuracy this week" value={pct(stats.sevenDayAccuracy)} />
           </div>
         </article>
 
@@ -131,7 +131,7 @@ export const StatisticsPage = ({ words, appData }: StatisticsPageProps) => {
         </article>
 
         <article className="panel">
-          <h3>30-Day Activity</h3>
+          <h3>Study Activity (30 Days)</h3>
           <ActivityBars points={activity} />
         </article>
       </div>

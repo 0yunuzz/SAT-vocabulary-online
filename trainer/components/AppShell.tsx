@@ -11,14 +11,14 @@ interface AppShellProps {
   children: ReactNode;
 }
 
-const navItems: Array<{ key: AppScreen; label: string }> = [
-  { key: "dashboard", label: "Dashboard" },
-  { key: "statistics", label: "Statistics" },
-  { key: "setup", label: "Practice" },
-  { key: "review", label: "Review" },
-  { key: "library", label: "Word Library" },
-  { key: "achievements", label: "Achievements" },
-  { key: "settings", label: "Settings" },
+const navItems: Array<{ id: string; key: AppScreen; label: string }> = [
+  { id: "dashboard", key: "dashboard", label: "Dashboard" },
+  { id: "practice", key: "setup", label: "Practice" },
+  { id: "review", key: "review", label: "Review" },
+  { id: "library", key: "library", label: "Word Library" },
+  { id: "statistics-primary", key: "statistics", label: "Statistics" },
+  { id: "achievements", key: "achievements", label: "Achievements" },
+  { id: "statistics-secondary", key: "statistics", label: "Statistics" },
 ];
 
 const saveLabel: Record<SyncStatus, string> = {
@@ -42,14 +42,14 @@ export const AppShell = ({
       <aside className="sidebar">
         <div className="brand-block">
           <p className="brand-tag">SAT Prep</p>
-          <h1>Vocabulary Studio Online</h1>
-          <p className="brand-sub">Adaptive practice with local guest mode and account autosave.</p>
+          <h1>SAT Vocabulary Online</h1>
+          <p className="brand-sub">Build SAT-ready vocabulary through focused practice, review, and measurable progress.</p>
         </div>
 
         <nav className="main-nav" aria-label="Primary">
           {navItems.map((item) => (
             <button
-              key={item.key}
+              key={item.id}
               className={`nav-item ${screen === item.key ? "active" : ""}`}
               onClick={() => onNavigate(item.key)}
             >
