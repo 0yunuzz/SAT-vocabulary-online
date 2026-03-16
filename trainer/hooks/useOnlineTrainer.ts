@@ -523,11 +523,10 @@ export const useOnlineTrainer = (initialScreen: AppScreen = "dashboard") => {
     setState((prev) => ({
       ...prev,
       appData: resetData,
-      settings: defaultSettings,
       screen: "dashboard",
       lastSummary: undefined,
       activeSession: undefined,
-      transientNotice: "Progress reset complete."
+      transientNotice: "All study data for the current mode was cleared."
     }));
   }, [activeDataKey, study.replaceSnapshot]);
 

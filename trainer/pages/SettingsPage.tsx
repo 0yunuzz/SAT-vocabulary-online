@@ -34,6 +34,8 @@ export const SettingsPage = ({
   onUpdate,
   onResetProgress
 }: SettingsPageProps) => {
+  const modeLabel = mode === "guest" ? "guest mode (this browser only)" : "signed-in account mode";
+
   return (
     <section className="page">
       <header className="page-header">
@@ -166,12 +168,13 @@ export const SettingsPage = ({
         </article>
 
         <article className="panel danger-zone">
-          <h3>Reset Current Mode Progress</h3>
+          <h3>Clear All Data</h3>
           <p>
-            This clears all tracked study data for your current mode.
+            This clears all tracked study data for <strong>{modeLabel}</strong>.
           </p>
+          <p className="small-note">Your app preferences (dark mode, timers, defaults) stay saved.</p>
           <button className="btn danger" onClick={() => void onResetProgress()}>
-            Reset All Study Data
+            Clear All Study Data
           </button>
         </article>
       </div>

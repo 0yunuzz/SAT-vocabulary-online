@@ -16,9 +16,9 @@ const navItems: Array<{ id: string; key: AppScreen; label: string }> = [
   { id: "practice", key: "setup", label: "Practice" },
   { id: "review", key: "review", label: "Review" },
   { id: "library", key: "library", label: "Word Library" },
-  { id: "statistics-primary", key: "statistics", label: "Statistics" },
+  { id: "statistics", key: "statistics", label: "Statistics" },
   { id: "achievements", key: "achievements", label: "Achievements" },
-  { id: "statistics-secondary", key: "statistics", label: "Statistics" },
+  { id: "settings", key: "settings", label: "Settings" },
 ];
 
 const saveLabel: Record<SyncStatus, string> = {
