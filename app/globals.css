@@ -798,22 +798,20 @@ html.dark .main-content .word-meta-grid span {
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .btn,
+  .btn:not(.no-hover-scale),
   .button,
   .nav-item,
   .text-button,
-  .choice,
-  button {
+  button:not(.choice):not(.no-hover-scale) {
     transition: transform 0.24s ease;
     will-change: transform;
   }
 
-  .btn:hover,
+  .btn:not(.no-hover-scale):hover,
   .button:hover,
   .nav-item:hover,
   .text-button:hover,
-  .choice:hover,
-  button:hover {
+  button:not(.choice):not(.no-hover-scale):hover {
     transform: scale(1.06);
   }
 }

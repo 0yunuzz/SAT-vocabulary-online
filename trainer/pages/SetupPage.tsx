@@ -251,7 +251,7 @@ export const SetupPage = ({ words, appData, settings, lastConfig, onStartSession
             </>
           ) : null}
 
-          <button className="btn primary" type="submit">
+          <button className="btn primary no-hover-scale" type="submit">
             Start Session
           </button>
         </form>
