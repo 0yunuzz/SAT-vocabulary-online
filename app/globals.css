@@ -796,3 +796,24 @@ html.dark .main-content .word-meta-grid span {
   gap: 10px;
   align-items: center;
 }
+
+@media (hover: hover) and (pointer: fine) {
+  .btn,
+  .button,
+  .nav-item,
+  .text-button,
+  .choice,
+  button {
+    transition: transform 0.24s ease;
+    will-change: transform;
+  }
+
+  .btn:hover,
+  .button:hover,
+  .nav-item:hover,
+  .text-button:hover,
+  .choice:hover,
+  button:hover {
+    transform: scale(1.06);
+  }
+}
