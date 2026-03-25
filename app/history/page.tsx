@@ -1,6 +1,5 @@
-import { TrainerApp } from "@/trainer/TrainerApp";
+import { redirect } from "next/navigation";
 
 export default function HistoryPage() {
-  return <TrainerApp initialScreen="review" />;
+  redirect("/study");
 }
-

@@ -1,6 +1,5 @@
-import { TrainerApp } from "@/trainer/TrainerApp";
+import { redirect } from "next/navigation";
 
 export default function AchievementsPage() {
-  return <TrainerApp initialScreen="achievements" />;
+  redirect("/study");
 }
-

@@ -5,8 +5,9 @@ import { Providers } from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SAT Vocab Online",
-  description: "Adaptive SAT vocabulary trainer with guest and synced account modes."
+  title: "SAT Vocabulary Classroom Platform",
+  description:
+    "SAT vocabulary study platform for guest learners, student accounts, teachers, and admin oversight."
 };
 
 export default function RootLayout({

@@ -83,7 +83,11 @@ export const parseCsv = (raw: string): ParsedCsvResult => {
   }
 
   const headers = parseLineCells(nonBlankLines[0]).map((header) =>
-    header.trim().toLowerCase().replace(/\s+/g, "_")
+    header
+      .trim()
+      .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+      .toLowerCase()
+      .replace(/\s+/g, "_")
   );
 
   const rows: string[][] = [];

@@ -13,7 +13,8 @@ async function main() {
       create: item,
       update: {
         definition: item.definition,
-        exampleSentence: item.exampleSentence
+        exampleSentence: item.exampleSentence,
+        sourceGroup: item.sourceGroup ?? null
       }
     });
   }

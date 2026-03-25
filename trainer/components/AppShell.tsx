@@ -1,4 +1,6 @@
 import { ReactNode } from "react";
+import Link from "next/link";
+import { UserRole } from "@prisma/client";
 import { AppScreen } from "../types";
 import type { StorageMode, SyncStatus } from "@/lib/types";
 
@@ -8,6 +10,7 @@ interface AppShellProps {
   mode: StorageMode;
   saveStatus: SyncStatus;
   userEmail?: string | null;
+  userRole?: UserRole;
   children: ReactNode;
 }
 
@@ -35,8 +38,19 @@ export const AppShell = ({
   mode,
   saveStatus,
   userEmail,
+  userRole,
   children
 }: AppShellProps) => {
+  const classroomHome =
+    userRole === UserRole.TEACHER
+      ? "/teacher"
+      : userRole === UserRole.ADMIN
+        ? "/admin"
+        : "/student";
+
+  const assignmentRoute =
+    userRole === UserRole.TEACHER ? "/teacher/assignments" : "/student/assignments";
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -44,6 +58,27 @@ export const AppShell = ({
           <p className="brand-tag">SAT Prep</p>
           <h1>SAT Vocabulary Online</h1>
           <p className="brand-sub">Build SAT-ready vocabulary through focused practice, review, and measurable progress.</p>
+        </div>
+
+        <div className="mode-switcher panel-lite">
+          <p className="small-note mode-label">Current Area</p>
+          <span className="mode-pill active">Personal Study</span>
+          {mode === "guest" ? (
+            <Link href="/" className="mode-pill">
+              Sign in for classroom assignments
+            </Link>
+          ) : (
+            <>
+              <Link href={classroomHome} className="mode-pill">
+                Classroom Home
+              </Link>
+              {userRole !== UserRole.ADMIN ? (
+                <Link href={assignmentRoute} className="mode-pill">
+                  Assignments
+                </Link>
+              ) : null}
+            </>
+          )}
         </div>
 
         <nav className="main-nav" aria-label="Primary">

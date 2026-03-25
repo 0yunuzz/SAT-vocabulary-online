@@ -4,7 +4,11 @@ import type { VocabWord } from "@/lib/types";
 type CsvRow = Record<string, string | undefined>;
 
 function normalizeHeader(header: string): string {
-  return header.trim().toLowerCase().replace(/\s+/g, "_");
+  return header
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/\s+/g, "_");
 }
 
 function pickValue(row: CsvRow, keys: string[]): string {
@@ -37,13 +41,24 @@ export function parseVocabCsv(csvText: string): VocabWord[] {
         "example",
         "context"
       ]);
+      const sourceGroup = pickValue(row, [
+        "source_group",
+        "group",
+        "unit",
+        "list",
+        "category"
+      ]);
 
       if (!word || !definition || !exampleSentence) return null;
-      return {
+      const normalized: VocabWord = {
         word,
         definition,
         exampleSentence
       };
+      if (sourceGroup) {
+        normalized.sourceGroup = sourceGroup;
+      }
+      return normalized;
     })
     .filter((item): item is VocabWord => item !== null);
 

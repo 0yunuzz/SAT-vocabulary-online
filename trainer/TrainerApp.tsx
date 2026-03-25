@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { signIn, signOut } from "next-auth/react";
+import { UserRole } from "@prisma/client";
 import { AppShell } from "./components/AppShell";
 import { DashboardPage } from "./pages/DashboardPage";
 import { StatisticsPage } from "./pages/StatisticsPage";
@@ -187,6 +188,7 @@ export const TrainerApp = ({ initialScreen = "dashboard" }: TrainerAppProps) => 
       mode={modeState.mode}
       saveStatus={modeState.syncStatus}
       userEmail={modeState.user?.email}
+      userRole={modeState.user?.role as UserRole | undefined}
     >
       {state.transientNotice ? (
         <div className="notice-banner" role="status" onClick={actions.clearNotice}>

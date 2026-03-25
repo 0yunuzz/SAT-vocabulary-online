@@ -8,21 +8,63 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum UserRole {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum AssignmentMode {
+  MULTIPLE_CHOICE
+  TYPED_RESPONSE
+  MIXED
+}
+
+enum AssignmentSourceType {
+  DIRECT_WORDS
+  SOURCE_GROUP
+}
+
+enum AssignmentQuestionFormat {
+  MULTIPLE_CHOICE
+  TYPED_RESPONSE
+}
+
+enum AssignmentPromptType {
+  WORD_TO_DEFINITION
+  DEFINITION_TO_WORD
+  SENTENCE_CONTEXT
+}
+
+enum SubmissionKind {
+  STUDENT_SUBMIT
+  AUTO_SUBMIT
+}
+
 model User {
-  id            String             @id @default(cuid())
-  name          String?
-  email         String?            @unique
-  emailVerified DateTime?
-  image         String?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  accounts      Account[]
-  sessions      Session[]
-  progress      UserWordProgress[]
-  studySessions StudySession[]
-  bookmarks     Bookmark[]
-  streak        Streak?
-  achievements  UserAchievement[]
+  id                 String              @id @default(cuid())
+  name               String?
+  email              String?             @unique
+  emailVerified      DateTime?
+  image              String?
+  role               UserRole            @default(STUDENT)
+  roleSelectedAt     DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  accounts           Account[]
+  sessions           Session[]
+  progress           UserWordProgress[]
+  studySessions      StudySession[]
+  bookmarks          Bookmark[]
+  streak             Streak?
+  achievements       UserAchievement[]
+  classesTaught      Classroom[]         @relation("TeacherClasses")
+  classMemberships   ClassMembership[]   @relation("StudentMemberships")
+  membershipRemovals ClassMembership[]   @relation("MembershipRemovedBy")
+  assignmentsCreated Assignment[]        @relation("TeacherAssignments")
+  assignmentAttempts AssignmentAttempt[] @relation("StudentAssignmentAttempts")
+  adminRoleChanges   RoleAuditLog[]      @relation("RoleChangedBy")
+  roleChangeHistory  RoleAuditLog[]      @relation("RoleChangedFor")
 
   @@map("Users")
 }
@@ -65,10 +107,14 @@ model Word {
   word            String             @unique
   definition      String
   exampleSentence String
+  sourceGroup     String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
   progress        UserWordProgress[]
   bookmarks       Bookmark[]
+  assignmentWords AssignmentWord[]
+  assignmentQuestions AssignmentQuestion[]
+  assignmentResponses AssignmentResponse[]
 
   @@map("Words")
 }
@@ -152,13 +198,170 @@ model UserAchievement {
 }
 
 model Streak {
-  id           String    @id @default(cuid())
-  userId       String    @unique
-  currentStreak Int      @default(0)
-  longestStreak Int      @default(0)
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  currentStreak Int       @default(0)
+  longestStreak Int       @default(0)
   lastStudyDate DateTime?
-  updatedAt    DateTime  @updatedAt
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("Streaks")
+}
+
+model Classroom {
+  id          String              @id @default(cuid())
+  name        String
+  joinCode    String              @unique
+  teacherId   String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  teacher     User                @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: Restrict)
+  memberships ClassMembership[]
+  assignments Assignment[]
+  attempts    AssignmentAttempt[]
+
+  @@index([teacherId, createdAt])
+}
+
+model ClassMembership {
+  id          String    @id @default(cuid())
+  classId     String
+  studentId   String
+  joinedAt    DateTime  @default(now())
+  removedAt   DateTime?
+  removedById String?
+  classroom   Classroom @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student     User      @relation("StudentMemberships", fields: [studentId], references: [id], onDelete: Restrict)
+  removedBy   User?     @relation("MembershipRemovedBy", fields: [removedById], references: [id], onDelete: SetNull)
+
+  @@unique([classId, studentId], map: "class_student")
+  @@index([studentId, removedAt])
+  @@index([classId, removedAt])
+}
+
+model Assignment {
+  id                  String               @id @default(cuid())
+  classId             String
+  teacherId           String
+  title               String
+  instructions        String?
+  dueAt               DateTime
+  allowLateSubmissions Boolean             @default(false)
+  questionCount       Int
+  mode                AssignmentMode
+  sourceType          AssignmentSourceType
+  sourceLabel         String?
+  firstStartedAt      DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  classroom           Classroom            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher             User                 @relation("TeacherAssignments", fields: [teacherId], references: [id], onDelete: Restrict)
+  words               AssignmentWord[]
+  questions           AssignmentQuestion[]
+  attempts            AssignmentAttempt[]
+
+  @@index([classId, dueAt])
+  @@index([teacherId, createdAt])
+}
+
+model AssignmentWord {
+  id           String     @id @default(cuid())
+  assignmentId String
+  wordId       Int
+  position     Int
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  word         Word       @relation(fields: [wordId], references: [id], onDelete: Restrict)
+
+  @@unique([assignmentId, position], map: "assignment_word_position")
+  @@unique([assignmentId, wordId], map: "assignment_word_word")
+}
+
+model AssignmentQuestion {
+  id               String                   @id @default(cuid())
+  assignmentId     String
+  wordId           Int
+  position         Int
+  promptType       AssignmentPromptType
+  format           AssignmentQuestionFormat
+  prompt           String
+  subPrompt        String?
+  choices          Json?
+  answerText       String
+  answerAliases    Json?
+  sentenceWithBlank String?
+  createdAt        DateTime                 @default(now())
+  assignment       Assignment               @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  word             Word                     @relation(fields: [wordId], references: [id], onDelete: Restrict)
+  responses        AssignmentResponse[]
+
+  @@unique([assignmentId, position], map: "assignment_question_position")
+  @@index([assignmentId, format])
+}
+
+model AssignmentAttempt {
+  id               String               @id @default(cuid())
+  assignmentId     String
+  classId          String
+  studentId        String
+  startedAt        DateTime?
+  submittedAt      DateTime?
+  submissionKind   SubmissionKind?
+  submittedLate    Boolean              @default(false)
+  totalQuestions   Int
+  questionsCompleted Int                @default(0)
+  firstTryCorrect  Int                  @default(0)
+  finalCorrect     Int                  @default(0)
+  totalAttempts    Int                  @default(0)
+  totalResponseMs  Int                  @default(0)
+  lastActivityAt   DateTime?
+  autoSubmittedAt  DateTime?
+  masteryAppliedAt DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  assignment       Assignment           @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  classroom        Classroom            @relation(fields: [classId], references: [id], onDelete: Restrict)
+  student          User                 @relation("StudentAssignmentAttempts", fields: [studentId], references: [id], onDelete: Restrict)
+  responses        AssignmentResponse[]
+
+  @@unique([assignmentId, studentId], map: "assignment_student_attempt")
+  @@index([classId, studentId])
+  @@index([studentId, submittedAt])
+}
+
+model AssignmentResponse {
+  id              String            @id @default(cuid())
+  attemptId       String
+  questionId      String
+  questionPosition Int
+  wordId          Int
+  firstAnswer     String?
+  finalAnswer     String?
+  firstCorrect    Boolean?
+  isCorrect       Boolean?
+  attempts        Int               @default(0)
+  responseMs      Int               @default(0)
+  completedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  attempt         AssignmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question        AssignmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  word            Word              @relation(fields: [wordId], references: [id], onDelete: Restrict)
+
+  @@unique([attemptId, questionId], map: "attempt_question_response")
+  @@index([attemptId, completedAt])
+}
+
+model RoleAuditLog {
+  id           String   @id @default(cuid())
+  targetUserId String
+  changedById  String
+  previousRole UserRole
+  newRole      UserRole
+  createdAt    DateTime @default(now())
+  targetUser   User     @relation("RoleChangedFor", fields: [targetUserId], references: [id], onDelete: Cascade)
+  changedBy    User     @relation("RoleChangedBy", fields: [changedById], references: [id], onDelete: Cascade)
+
+  @@index([targetUserId, createdAt])
+  @@index([changedById, createdAt])
 }

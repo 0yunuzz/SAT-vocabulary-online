@@ -24,18 +24,21 @@ async function upsertWord(
   db: PrismaClient | Prisma.TransactionClient,
   word: string,
   definition: string,
-  exampleSentence: string
+  exampleSentence: string,
+  sourceGroup?: string
 ) {
   return db.word.upsert({
     where: { word },
     create: {
       word,
       definition: definition || "Definition unavailable",
-      exampleSentence: exampleSentence || "Example sentence unavailable"
+      exampleSentence: exampleSentence || "Example sentence unavailable",
+      sourceGroup: sourceGroup ?? null
     },
     update: {
       definition: definition || "Definition unavailable",
-      exampleSentence: exampleSentence || "Example sentence unavailable"
+      exampleSentence: exampleSentence || "Example sentence unavailable",
+      sourceGroup: sourceGroup ?? null
     }
   });
 }

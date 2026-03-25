@@ -14,6 +14,7 @@ export interface VocabWord {
   word: string;
   definition: string;
   exampleSentence: string;
+  sourceGroup?: string;
 }
 
 export interface WordProgress {

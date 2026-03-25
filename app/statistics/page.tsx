@@ -1,5 +1,5 @@
-import { TrainerApp } from "@/trainer/TrainerApp";
+import { redirect } from "next/navigation";
 
 export default function StatisticsPage() {
-  return <TrainerApp initialScreen="statistics" />;
+  redirect("/study");
 }

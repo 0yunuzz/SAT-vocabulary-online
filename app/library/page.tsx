@@ -1,6 +1,5 @@
-import { TrainerApp } from "@/trainer/TrainerApp";
+import { redirect } from "next/navigation";
 
 export default function LibraryPage() {
-  return <TrainerApp initialScreen="library" />;
+  redirect("/study");
 }
-
