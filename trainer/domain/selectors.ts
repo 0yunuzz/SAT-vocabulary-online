@@ -33,8 +33,15 @@ export const mostMissedWords = (words: VocabWord[], data: AppData, limit = 8): V
 
 export const recentSessions = (data: AppData, limit = 5) => [...data.sessions].slice(-limit).reverse();
 
-export const studyActivity = (data: AppData, days = 14): { date: string; questions: number }[] => {
-  const points: { date: string; questions: number }[] = [];
+export interface StudyActivityPoint {
+  date: string;
+  questions: number;
+  correct: number;
+  incorrect: number;
+}
+
+export const studyActivity = (data: AppData, days = 14): StudyActivityPoint[] => {
+  const points: StudyActivityPoint[] = [];
   const now = new Date();
 
   for (let i = days - 1; i >= 0; i -= 1) {
@@ -42,9 +49,14 @@ export const studyActivity = (data: AppData, days = 14): { date: string; questio
     d.setDate(now.getDate() - i);
     const key = todayKey(d);
     const fallbackKey = d.toISOString().slice(0, 10);
+    const entry = data.dailyHistory[key] ?? data.dailyHistory[fallbackKey];
+    const questions = entry?.questions ?? 0;
+    const correct = (entry?.firstTryCorrect ?? 0) + (entry?.secondTryCorrect ?? 0);
     points.push({
       date: key,
-      questions: data.dailyHistory[key]?.questions ?? data.dailyHistory[fallbackKey]?.questions ?? 0
+      questions,
+      correct,
+      incorrect: Math.max(0, questions - correct)
     });
   }
 

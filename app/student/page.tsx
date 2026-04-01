@@ -116,7 +116,7 @@ export default async function StudentDashboardPage() {
       userName={auth.name}
       userEmail={auth.email}
       title="Student Dashboard"
-      subtitle="Personal study and classroom assignments in one view."
+      subtitle="Track class activity, upcoming deadlines, and submission progress."
     >
       <div className="stats-grid">
         <article className="stat-card">
@@ -139,41 +139,13 @@ export default async function StudentDashboardPage() {
         </article>
         <article className="stat-card">
           <div>
-            <p className="stat-label">Mastered Words</p>
-            <p className="stat-value">{masteredCount}</p>
-            <p className="small-note">from personal independent study</p>
+            <p className="stat-label">Due Soon</p>
+            <p className="stat-value">{dueSoon.length}</p>
           </div>
         </article>
       </div>
 
       <div className="dashboard-panels two-col">
-        <article className="panel">
-          <div className="panel-head-row">
-            <h3>Personal study</h3>
-            <Link className="text-button" href="/study">
-              Open study engine
-            </Link>
-          </div>
-          <p>
-            Your private independent study stays private from teachers. Assignment
-            outcomes still improve personal mastery internally.
-          </p>
-          <ul className="metric-list">
-            <li>
-              <span>Tracked words</span>
-              <strong>{progressValues.length}</strong>
-            </li>
-            <li>
-              <span>Study sessions</span>
-              <strong>{snapshot.sessions.length}</strong>
-            </li>
-            <li>
-              <span>Current streak</span>
-              <strong>{snapshot.streak.currentStreak}</strong>
-            </li>
-          </ul>
-        </article>
-
         <article className="panel">
           <div className="panel-head-row">
             <h3>Due soon</h3>
@@ -199,6 +171,28 @@ export default async function StudentDashboardPage() {
           ) : (
             <p className="empty-copy">No assignments due in the next 3 days.</p>
           )}
+        </article>
+
+        <article className="panel">
+          <h3>Classroom momentum</h3>
+          <ul className="metric-list">
+            <li>
+              <span>Assignments tracked</span>
+              <strong>{assignmentRows.length}</strong>
+            </li>
+            <li>
+              <span>Submitted</span>
+              <strong>{past.length}</strong>
+            </li>
+            <li>
+              <span>Overdue</span>
+              <strong>{overdue.length}</strong>
+            </li>
+            <li>
+              <span>Mastered words</span>
+              <strong>{masteredCount}</strong>
+            </li>
+          </ul>
         </article>
       </div>
 

@@ -30,7 +30,7 @@ export const ReviewPage = ({ words, appData, onStartSession, onToggleBookmark }:
     <section className="page">
       <header className="page-header">
         <div>
-          <h2>Review Center</h2>
+          <h2>Review</h2>
           <p>Target specific subsets to close memory gaps efficiently.</p>
         </div>
       </header>
@@ -103,7 +103,6 @@ export const ReviewPage = ({ words, appData, onStartSession, onToggleBookmark }:
             {recent.map((word) => (
               <li key={word.id}>
                 <strong>{word.word}</strong>
-                <span>{appData.wordProgress[word.id]?.lastSeenAt?.slice(0, 10) ?? "-"}</span>
               </li>
             ))}
           </ul>

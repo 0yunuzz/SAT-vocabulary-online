@@ -75,7 +75,7 @@ export const PracticePage = ({
       <section className="page">
         <div className="panel empty-state">
           <h3>No active session</h3>
-          <p>Start a session from Practice Setup or Dashboard quick start.</p>
+          <p>Start a session from Practice or Dashboard quick start.</p>
         </div>
       </section>
     );

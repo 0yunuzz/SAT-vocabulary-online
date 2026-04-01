@@ -1,6 +1,8 @@
 interface ActivityPoint {
   date: string;
   questions: number;
+  correct: number;
+  incorrect: number;
 }
 
 interface ActivityBarsProps {
@@ -18,12 +20,22 @@ export const ActivityBars = ({ points }: ActivityBarsProps) => {
       style={{ gridTemplateColumns: `repeat(${Math.max(points.length, 1)}, minmax(12px, 1fr))` }}
     >
       {points.map((point) => {
-        const height = Math.max(8, (point.questions / max) * 100);
+        const correctHeight = (point.correct / max) * 100;
+        const incorrectHeight = (point.incorrect / max) * 100;
         const label = point.date.slice(5);
 
         return (
-          <div className="activity-column" key={point.date} title={`${point.date}: ${point.questions} questions`}>
-            <div className="activity-bar" style={{ height: `${height}%` }} />
+          <div className="activity-column" key={point.date} title={`Questions: ${point.questions}`}>
+            <div className="activity-bar-stack">
+              <div
+                className="activity-bar-segment correct"
+                style={{ height: `${correctHeight}%` }}
+              />
+              <div
+                className="activity-bar-segment incorrect"
+                style={{ height: `${incorrectHeight}%`, bottom: `${correctHeight}%` }}
+              />
+            </div>
             <span>{label}</span>
           </div>
         );

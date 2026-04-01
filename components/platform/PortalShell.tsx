@@ -22,15 +22,13 @@ interface NavItem {
 const studentNav: NavItem[] = [
   { href: "/student", label: "Dashboard" },
   { href: "/student/classes", label: "Classes" },
-  { href: "/student/assignments", label: "Assignments" },
-  { href: "/study", label: "Personal Study" }
+  { href: "/student/assignments", label: "Assignments" }
 ];
 
 const teacherNav: NavItem[] = [
   { href: "/teacher", label: "Dashboard" },
   { href: "/teacher/classes", label: "Classes" },
-  { href: "/teacher/assignments", label: "Assignments" },
-  { href: "/study", label: "Personal Study" }
+  { href: "/teacher/assignments", label: "Assignments" }
 ];
 
 const adminNav: NavItem[] = [
@@ -49,6 +47,10 @@ function roleLabel(role: UserRole): string {
   return "Student";
 }
 
+function isNavActive(pathname: string, href: string): boolean {
+  return pathname === href || (href !== "/student" && href !== "/teacher" && pathname.startsWith(`${href}/`));
+}
+
 export function PortalShell({
   role,
   userName,
@@ -59,6 +61,10 @@ export function PortalShell({
 }: PortalShellProps) {
   const pathname = usePathname();
   const nav = roleNav(role);
+  const classroomDashboardHref =
+    role === UserRole.TEACHER ? "/teacher" : role === UserRole.ADMIN ? "/admin" : "/student";
+  const classroomLabel =
+    role === UserRole.STUDENT ? "Student Dashboard" : role === UserRole.TEACHER ? "Teacher Dashboard" : "Admin Dashboard";
 
   return (
     <div className="portal-shell">
@@ -69,9 +75,18 @@ export function PortalShell({
           <p>{roleLabel(role)} Workspace</p>
         </div>
 
+        <div className="mode-switcher">
+          <Link href="/study" className="mode-pill">
+            Personal Dashboard
+          </Link>
+          <Link href={classroomDashboardHref} className="mode-pill active">
+            {classroomLabel}
+          </Link>
+        </div>
+
         <nav className="portal-nav" aria-label="Workspace">
           {nav.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            const active = isNavActive(pathname, item.href);
             return (
               <Link
                 className={`portal-nav-item ${active ? "active" : ""}`}

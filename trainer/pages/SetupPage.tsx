@@ -12,10 +12,10 @@ interface SetupPageProps {
 }
 
 const baseModes: PracticeMode[] = [
+  "mixed",
+  "sentence_context",
   "word_to_definition",
   "definition_to_word",
-  "sentence_context",
-  "mixed",
   "missed_words",
   "weak_words",
   "bookmarked_words",
@@ -53,7 +53,15 @@ export const SetupPage = ({ words, appData, settings, lastConfig, onStartSession
   );
 
   const groups = useMemo(
-    () => [...new Set(words.map((word) => word.sourceGroup).filter(Boolean))] as string[],
+    () =>
+      ([...new Set(words.map((word) => word.sourceGroup).filter(Boolean))] as string[]).sort((a, b) => {
+        const aMatch = a.match(/\d+/);
+        const bMatch = b.match(/\d+/);
+        const aNum = aMatch ? Number(aMatch[0]) : Number.POSITIVE_INFINITY;
+        const bNum = bMatch ? Number(bMatch[0]) : Number.POSITIVE_INFINITY;
+        if (aNum !== bNum) return aNum - bNum;
+        return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+      }),
     [words]
   );
 
@@ -98,7 +106,7 @@ export const SetupPage = ({ words, appData, settings, lastConfig, onStartSession
     <section className="page">
       <header className="page-header">
         <div>
-          <h2>Practice Setup</h2>
+          <h2>Practice</h2>
           <p>Choose a focused mode, then launch a session in one click.</p>
         </div>
       </header>
@@ -257,7 +265,7 @@ export const SetupPage = ({ words, appData, settings, lastConfig, onStartSession
         </form>
 
         <aside className="panel setup-side">
-          <h3>Deck Snapshot</h3>
+          <h3>Overview</h3>
           <ul className="metric-list">
             <li>
               <span>Total words</span>

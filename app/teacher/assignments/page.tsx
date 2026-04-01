@@ -57,6 +57,9 @@ export default async function TeacherAssignmentsPage() {
   const sourceGroups = Array.from(
     new Set(words.map((word) => word.sourceGroup).filter((value): value is string => Boolean(value)))
   );
+  const openAssignmentCount = assignments.filter(
+    (assignment) => !assignment.attempts.some((attempt) => attempt.submittedAt)
+  ).length;
 
   return (
     <PortalShell
@@ -66,63 +69,86 @@ export default async function TeacherAssignmentsPage() {
       title="Assignments"
       subtitle="Create and monitor homework for each class."
     >
-      {classes.length ? (
-        <CreateAssignmentForm classes={classes} words={words} sourceGroups={sourceGroups} />
-      ) : (
-        <article className="panel">
-          <h3>Create a class first</h3>
-          <p>
-            Assignments are attached to classes. Create a class in the classes section
-            before creating your first assignment.
-          </p>
-          <Link className="btn primary" href="/teacher/classes">
-            Go to classes
-          </Link>
-        </article>
-      )}
+      <section className="assignment-page">
+        <div className="stats-grid">
+          <article className="stat-card">
+            <p className="stat-label">Total assignments</p>
+            <p className="stat-value">{assignments.length}</p>
+          </article>
+          <article className="stat-card">
+            <p className="stat-label">Open assignments</p>
+            <p className="stat-value">{openAssignmentCount}</p>
+          </article>
+          <article className="stat-card">
+            <p className="stat-label">Classes</p>
+            <p className="stat-value">{classes.length}</p>
+          </article>
+        </div>
 
-      <article className="panel">
-        <h3>Assignment list</h3>
-        {assignments.length ? (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Class</th>
-                <th>Due</th>
-                <th>Mode</th>
-                <th>Submissions</th>
-                <th>Late</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignments.map((assignment) => {
-                const submissions = assignment.attempts.filter((attempt) => attempt.submittedAt);
-                const lateCount = assignment.attempts.filter(
-                  (attempt) => attempt.submittedAt && attempt.submittedLate
-                ).length;
+        <div className="assignment-sections">
+          <section className="assignment-section">
+            {classes.length ? (
+              <CreateAssignmentForm classes={classes} words={words} sourceGroups={sourceGroups} />
+            ) : (
+              <article className="panel">
+                <h3>Create a class first</h3>
+                <p>
+                  Assignments are attached to classes. Create a class in the classes section
+                  before creating your first assignment.
+                </p>
+                <Link className="btn primary" href="/teacher/classes">
+                  Go to classes
+                </Link>
+              </article>
+            )}
+          </section>
 
-                return (
-                  <tr key={assignment.id}>
-                    <td>
-                      <Link href={`/teacher/assignments/${assignment.id}`}>
-                        {assignment.title}
-                      </Link>
-                    </td>
-                    <td>{assignment.classroom.name}</td>
-                    <td>{assignment.dueAt.toLocaleString()}</td>
-                    <td>{assignment.mode.replace("_", " ").toLowerCase()}</td>
-                    <td>{submissions.length}</td>
-                    <td>{lateCount}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <p className="empty-copy">No assignments created yet.</p>
-        )}
-      </article>
+          <section className="assignment-section">
+            <article className="panel assignment-table-panel">
+              <h3>Assignment list</h3>
+              {assignments.length ? (
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Class</th>
+                      <th>Due</th>
+                      <th>Mode</th>
+                      <th>Submissions</th>
+                      <th>Late</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {assignments.map((assignment) => {
+                      const submissions = assignment.attempts.filter((attempt) => attempt.submittedAt);
+                      const lateCount = assignment.attempts.filter(
+                        (attempt) => attempt.submittedAt && attempt.submittedLate
+                      ).length;
+
+                      return (
+                        <tr key={assignment.id}>
+                          <td>
+                            <Link href={`/teacher/assignments/${assignment.id}`}>
+                              {assignment.title}
+                            </Link>
+                          </td>
+                          <td>{assignment.classroom.name}</td>
+                          <td>{assignment.dueAt.toLocaleString()}</td>
+                          <td>{assignment.mode.replace("_", " ").toLowerCase()}</td>
+                          <td>{submissions.length}</td>
+                          <td>{lateCount}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="empty-copy">No assignments created yet.</p>
+              )}
+            </article>
+          </section>
+        </div>
+      </section>
     </PortalShell>
   );
 }

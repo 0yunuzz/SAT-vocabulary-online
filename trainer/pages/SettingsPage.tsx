@@ -35,6 +35,7 @@ export const SettingsPage = ({
   onResetProgress
 }: SettingsPageProps) => {
   const modeLabel = mode === "guest" ? "guest mode (this browser only)" : "signed-in account mode";
+  const canViewWarnings = userEmail?.toLowerCase() === "0yunus.kilinc@gmail.com";
 
   return (
     <section className="page">
@@ -152,20 +153,22 @@ export const SettingsPage = ({
           </label>
         </article>
 
-        <article className="panel">
-          <h3>Data Input Warnings</h3>
-          {warnings.length ? (
-            <ul className="warning-list">
-              {warnings.slice(0, 25).map((warning, index) => (
-                <li key={`${warning.message}-${index}`}>
-                  <strong>{warning.row > 0 ? `Row ${warning.row}` : "Notice"}:</strong> {warning.message}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="empty-copy">No parser warnings detected in your vocabulary file.</p>
-          )}
-        </article>
+        {canViewWarnings ? (
+          <article className="panel">
+            <h3>Data Input Warnings</h3>
+            {warnings.length ? (
+              <ul className="warning-list">
+                {warnings.slice(0, 25).map((warning, index) => (
+                  <li key={`${warning.message}-${index}`}>
+                    <strong>{warning.row > 0 ? `Row ${warning.row}` : "Notice"}:</strong> {warning.message}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="empty-copy">No parser warnings detected in your vocabulary file.</p>
+            )}
+          </article>
+        ) : null}
 
         <article className="panel danger-zone">
           <h3>Clear All Data</h3>

@@ -119,74 +119,82 @@ export default async function StudentAssignmentsPage() {
       title="Assignments"
       subtitle="Track active homework, due dates, and completed submissions."
     >
-      <div className="stats-grid">
-        <article className="stat-card">
-          <p className="stat-label">Active</p>
-          <p className="stat-value">{active.length}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Overdue</p>
-          <p className="stat-value">{overdue.length}</p>
-        </article>
-        <article className="stat-card">
-          <p className="stat-label">Submitted</p>
-          <p className="stat-value">{past.length}</p>
-        </article>
-      </div>
+      <section className="assignment-page">
+        <div className="stats-grid">
+          <article className="stat-card">
+            <p className="stat-label">Active</p>
+            <p className="stat-value">{active.length}</p>
+          </article>
+          <article className="stat-card">
+            <p className="stat-label">Overdue</p>
+            <p className="stat-value">{overdue.length}</p>
+          </article>
+          <article className="stat-card">
+            <p className="stat-label">Submitted</p>
+            <p className="stat-value">{past.length}</p>
+          </article>
+        </div>
 
-      <article className="panel">
-        <h3>Active and upcoming</h3>
-        {active.length ? (
-          <ul className="word-list">
-            {active.map((row) => (
-              <li key={row.assignment.id}>
-                <div>
-                  <strong>{row.assignment.title}</strong>
-                  <p className="small-note">{row.assignment.classroom.name}</p>
-                  <p className="small-note">Due {new Date(row.assignment.dueAt).toLocaleString()}</p>
-                </div>
-                <div className="library-meta">
-                  <span className="pill learning">{row.status}</span>
-                  <Link
-                    className="btn secondary"
-                    href={`/student/assignments/${row.assignment.id}`}
-                  >
-                    Open
-                  </Link>
-                </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="empty-copy">No active assignments right now.</p>
-        )}
-      </article>
+        <div className="assignment-sections">
+          <section className="assignment-section">
+            <article className="panel">
+              <h3>Active and upcoming</h3>
+              {active.length ? (
+                <ul className="word-list">
+                  {active.map((row) => (
+                    <li key={row.assignment.id}>
+                      <div>
+                        <strong>{row.assignment.title}</strong>
+                        <p className="small-note">{row.assignment.classroom.name}</p>
+                        <p className="small-note">Due {new Date(row.assignment.dueAt).toLocaleString()}</p>
+                      </div>
+                      <div className="library-meta">
+                        <span className="pill learning">{row.status}</span>
+                        <Link
+                          className="btn secondary"
+                          href={`/student/assignments/${row.assignment.id}`}
+                        >
+                          Open
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="empty-copy">No active assignments right now.</p>
+              )}
+            </article>
+          </section>
 
-      <article className="panel">
-        <h3>Completed and overdue history</h3>
-        {past.length || overdue.length ? (
-          <ul className="word-list">
-            {[...overdue, ...past].map((row) => (
-              <li key={row.assignment.id}>
-                <div>
-                  <strong>{row.assignment.title}</strong>
-                  <p className="small-note">{row.assignment.classroom.name}</p>
-                  <p className="small-note">
-                    {row.attempt?.submittedAt
-                      ? `Submitted ${new Date(row.attempt.submittedAt).toLocaleString()}`
-                      : `Due ${new Date(row.assignment.dueAt).toLocaleString()}`}
-                  </p>
-                </div>
-                <span className={`pill ${row.status.includes("late") || row.status === "overdue" ? "weak" : "mastered"}`}>
-                  {row.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="empty-copy">No completed assignments yet.</p>
-        )}
-      </article>
+          <section className="assignment-section">
+            <article className="panel">
+              <h3>Completed and overdue history</h3>
+              {past.length || overdue.length ? (
+                <ul className="word-list">
+                  {[...overdue, ...past].map((row) => (
+                    <li key={row.assignment.id}>
+                      <div>
+                        <strong>{row.assignment.title}</strong>
+                        <p className="small-note">{row.assignment.classroom.name}</p>
+                        <p className="small-note">
+                          {row.attempt?.submittedAt
+                            ? `Submitted ${new Date(row.attempt.submittedAt).toLocaleString()}`
+                            : `Due ${new Date(row.assignment.dueAt).toLocaleString()}`}
+                        </p>
+                      </div>
+                      <span className={`pill ${row.status.includes("late") || row.status === "overdue" ? "weak" : "mastered"}`}>
+                        {row.status}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="empty-copy">No completed assignments yet.</p>
+              )}
+            </article>
+          </section>
+        </div>
+      </section>
     </PortalShell>
   );
 }
